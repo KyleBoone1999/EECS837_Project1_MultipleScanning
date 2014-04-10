@@ -1,0 +1,23 @@
+Overview of Project:
+	This project implements multiple scanning and dominant attribute machine learning workflows.
+	The input format is defined by the LERS specificatoin (reference TBD)
+	Multiple scanning selects the best k-cutpoints for all given attributes using minimum conditional entropy.
+	then the dominant attribute process begins.  If the A_curr table is
+	consistent with the data, then the process stops.  If not, the first elementary block with conflicting cases
+	is selected as a subtable for the looping process. (implement with a priority queue?)
+
+
+Outline for project:
+
+Components:
+	* LERS parser
+	* Determine partitions
+		from single attribute
+		from multiple attributes
+	* Determine consistency
+	
+
+Notes:
+	* Save cases by row number into dictionary object
+	* Include check for consistency of data table or condition that A_curr is consistent with A
+
