@@ -43,12 +43,25 @@ class Attribute:
 			self.span = "%02d..%02d" %(self.low, self.high)
 
 class DataSet:
+	class casePartition:
+		def __init__(self):
+			self.elementalSetList = list()
+			class elementalSet:
+				def __init__(self):
+					self.numberList = list()
+					
+
 	def __init__(self):
 		self.attributeList = list()
 
+	def partitionOfA(self):
+
+	def partitionOfDecision(self):
+
 	def kScans(self, k):
 
-	def isConsistent(self):
+	def isConsistent(self, partition1, partition2):
+		#for every elemental set in partition1, do the cases map to at most one set in partition2?
 		return consistentBoolean
 
 	def condEntropy(self):
