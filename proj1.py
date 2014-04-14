@@ -22,6 +22,9 @@ class ElementalSet:
 		self.sharedValue = sharedValue
 		self.cases = list()
 		self.cases.append(case)
+	
+	def __init__(self)
+		self.cases = list()
 
 class Partition:
 	def __init__(self):
@@ -31,13 +34,34 @@ class Partition:
 		for elementalSet in self.elementalSets:
 			if (sharedValue == elementalSet.sharedValue):
 				elementalSet.cases.append(case)
+				return
 		self.elementalSets.append(ElementalSet(case, sharedValue))
+
+	def splitElementalSet(self, elementalSet, case2):
+		#Add new elemental set to partition, starting with case2
+		self.elementalSets.append(ElementalSet())
+		#Remove elements from the original set to add them to the new list.
+		for case in range(elementalSet[(case2):-1]):
+			self.elementalSets[-1].cases.append(elementalSet.cases.pop())
 	
-	def mergePartition(self, partition2)
+	def mergePartitions(self, partition2)
 		disjointSet = DisjointDict(partition2)
 		for elementalSet in self.elementalSets:
-			for case1 in elementalSet.cases:#needs more work
+			for case1 in range(elementalSet.cases[0:-2]:
+					for case2 in elementalSet.cases[case1:-1]:
+						if disjointSet.find(case1) != disjointSet.find(case2): #distinguishable by second attribute
+							splitElementalSet(elementalSet, case2)
+		return self
 
+	def isConsistent(self, decision):
+			disjointSet = DisjointDict(decision)
+		for elementalSet in self.elementalSets:
+			for case1 in range(elementalSet.cases[0:-2]:
+					for case2 in elementalSet.cases[case1:-1]:
+						if disjointSet.find(case1) != disjointSet.find(case2): #conflicting cases
+							return false
+		return true
+						
 
 class Attribute:
 	def __init__(self, attrName):
@@ -61,9 +85,9 @@ class Attribute:
 		if (sortedList[midpoint] <= value and sortedList[midpoint+1] >=value):
 			return midpoint
 		if value > sortedList[midpoint]:
-			return maxLow(value,sortedList[midpoint:-1])
+			return maxBelow(value,sortedList[midpoint:-1])
 		elif value < sortedList[midpoint]:
-			return maxLow(value,sortedList[0:midpoint])
+			return maxBelow(value,sortedList[0:midpoint])
 		else:
 			return midpoint
 
@@ -82,6 +106,28 @@ class Attribute:
 	def addCutPoint(self, cutValue):
 		self.cutpoints.append(cutValue)
 	
+	def bestCutPoint(self, disjointSet):
+		if self.numericValue:
+			minEntropy = float(inf)
+			minCutpoint = 0
+			cutList = self.possibleCutList
+			if cutList:
+				for cutpoint in self.possibleCutList():
+					entropy = self.condEntropy(cutpoint, disjointSet)
+					if entropy < minEntropy:
+						minEntropy = entropy
+						minCutpoint = cutpoint
+				self.addCutpoint(cutpoint)
+				self.fromNumericToDiscrete()
+			else:
+				return 
+		else:
+			return
+
+	def condEntropy(self, disjointSet)
+	#Need to finish!
+		return 0
+
 	def partition(self):
 		inducedPartition = Partition()
 		if self.discreteValue:
@@ -91,6 +137,7 @@ class Attribute:
 			for case, numValue in self.numericValue.iteritems():
 				inducedPartition.addToElementalSet(case, numValue)
 		return inducedPartition
+
 
 class DataSet:
 	def __init__(self):
@@ -107,52 +154,24 @@ class DataSet:
 
 	def partitionOfDecision(self):
 		d = self.attributeList[-1]
-		partitionD = Partition()
-		for case, concept in d.discreteValue.iteritems():
-			partitionD.addToElementalSet(case, concept)
-		return partitionD
-
-
+		return d.partition()
 
 
 	def kScans(self, k):
+		if k == 0:
+			dominantArribute(self)
+			return
+		decisionDisjointSet = DisjoinDict(self.attributeList[-1].partition())
+		for attribute in self.attributeList[0:-2]:
+			attribute.bestCutpoint(decisionDisjointSet)
+		for i in range(k-1):
 
-	def isConsistent(self, partition1, partition2):
-		#for every elemental set in partition1, do the cases map to exactly one set in partition2?
-		return consistentBoolean
-
-	def condEntropy(self):
-		return entropyValue
-
-	#For a given dataset, returns the best cutpoint among multiple attributes
-	def cutpointSelect(self):	
-
-def multipleScanning(inputFile, k):
-	
-	dataset = parser(inputFile)
-	d = dataset.decision
-
-	#Algorithm for Multiple Scanning
-	
-	#Find the best k-cutpoints for each attribute using minimal conditional entropy
-		discretizedTable = kScans(dataset, k)
-
-	#Determine if discretized values are inconsistent with data
-	while(not isConsistent(discretizedTable, d)):
-	
-		#Find the dominant attribute using all indistguishable blocks with conflicting cases
-		subTable = conflictingCases(discretizedTable,d)
-		domAttr = dominantAttribute(subTable) #domAttr is the dict object containing all original attr. values
-	
-		#Find the best cutpoint for the dominant attribute using minimal conditional entropy
-		AddCutpoint(domAttr,discretizedTable,d))
-
-	return discretizedTable
 
 def parser(inputFile):
 	DataList = DataSet()
-	array = inputFile.read()
+	wholeFile = inputFile.read()
 	#Eliminate comments
+	
 	#Count number of a's
 	#Figure out where d is
 	#eliminate whitespace
