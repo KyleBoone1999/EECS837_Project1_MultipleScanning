@@ -1,4 +1,5 @@
 #This is the main program for Project #1 EECS 837
+import math
 
 class DisjointDict:
 	def __init__(self,elementSetList):
@@ -101,42 +102,22 @@ class Attribute:
 			avg = (self.sortedNumList[x+1] + self.sortedNumList[x])/2.0
 			if (avg > self.sortedNumList[x]):
 				self.cutList.append(avg)
+		self.cutList = set(self.cutList).difference(set(self.cutpoints))
 		return self.cutList
 
 	def addCutPoint(self, cutValue):
 		self.cutpoints.append(cutValue)
 	
-	def bestCutPoint(self, disjointSet):
-		if self.numericValue:
-			minEntropy = float(inf)
-			minCutpoint = 0
-			cutList = self.possibleCutList
-			if cutList:
-				for cutpoint in self.possibleCutList():
-					entropy = self.condEntropy(cutpoint, disjointSet)
-					if entropy < minEntropy:
-						minEntropy = entropy
-						minCutpoint = cutpoint
-				self.addCutpoint(cutpoint)
-				self.fromNumericToDiscrete()
-			else:
-				return 
-		else:
-			return
-
-	def condEntropy(self, disjointSet)
-	#Need to finish!
-		return 0
 
 	def partition(self):
-		inducedPartition = Partition()
+		self.partitionObj = Partition()
 		if self.discreteValue:
 			for case, discValue in self.discreteValue.iteritems():
 				inducedPartition.addToElementalSet(case, discValue)
 		else:
 			for case, numValue in self.numericValue.iteritems():
 				inducedPartition.addToElementalSet(case, numValue)
-		return inducedPartition
+		return self.partitionObj
 
 
 class DataSet:
@@ -156,28 +137,150 @@ class DataSet:
 		d = self.attributeList[-1]
 		return d.partition()
 
+	def conceptHistogram(caseList):
+		conceptHist = dict()
+		for case in caseList:
+			concept = decision[case]
+			if conceptHist.get(concept):
+				conceptHist(concept) += 1
+			else:
+				conceptHist(concept) = 1
+		return conceptHist
 
-	def kScans(self, k):
+	def condEntropyOneCutpoint(self, attribute, cutpoint)
+		decision = self[-1]
+		if not attribute.numericValue:
+			return
+		#Separate cases into low and high
+		lowValues = list()
+		highValues = list()
+
+		for case, num in attribute.numericValue().iteritems():
+			if num > cutpoint:
+				highValues.append(case)
+			else:
+				lowValues.append(case)
+		
+		#Histogram of concepts for high list and low list
+		lowValConcepts = conceptHistogram(lowValues)
+		highValConcepts = conceptHistogram(highValues)
+
+		totalLowCases = len(lowValues)
+		totalHighCases = len(highValues)
+		totalCases = totalLowCases + totalHighCases
+
+
+		#Entropy
+		sumLow = 0
+		for concept, count in lowValConcepts.iteritems():
+			sumLow += -1 * count/totalLowCases * math.log(count/totalLowCases,2)
+
+		sumHigh = 0
+		for concept, count in highValConcepts.iteritems():
+			sumHigh += -1 * count/totalHighCases * math.log(count/totalHighCases,2)
+
+		H = (totalLowCases * sumLow + totalHighCases * sumHigh) / totalCases
+
+		return H
+
+	def bestCutPoint(self, attribute):
+		if self.numericValue:
+			minEntropy = float(inf)
+			minCutpoint = 0
+			cutList = self.possibleCutList()
+			if cutList:
+				for cutpoint in self.possibleCutList():
+					entropy = condEntropyOneCutpoint(self,attribute,cutpoint)
+					if entropy < minEntropy:
+						minEntropy = entropy
+						minCutpoint = cutpoint
+				self.addCutpoint(minCutpoint)
+				self.fromNumericToDiscrete()
+			else:
+				return 
+		else:
+			return
+
+	def mergeCutpoints(self):
+		return
+
+	def dominantAttribute(self):
+		return
+
+	def multipleScans(self, k):
 		if k == 0:
 			dominantArribute(self)
 			return
-		decisionDisjointSet = DisjoinDict(self.attributeList[-1].partition())
 		for attribute in self.attributeList[0:-2]:
-			attribute.bestCutpoint(decisionDisjointSet)
-		for i in range(k-1):
+			bestCutpoint(attribute)
+		k -= 1
+		while (k > 0):
+			#find inconsistent cases
+				#if found, select best cutpoint
+			k -= 1
+
+def is_numeric(string):
+	try:
+		float(string)
+		return true
+	except	ValueError:
+		return false
+
 
 
 def parser(inputFile):
-	DataList = DataSet()
-	wholeFile = inputFile.read()
-	#Eliminate comments
 	
-	#Count number of a's
-	#Figure out where d is
-	#eliminate whitespace
-	#Store attributes with name and if attribute is numeric or not
-	#Store decision with name and it cannot be numeric
-	return DataList
+	#Eliminate ! comments
+	dataLines = inputFile.readlines()
+	noComments = file('\\temp.d')
+	for line in dataLines:
+		noComments.write(line.split('!')[0])
+
+	#Count number of attributes
+	dataList = DataSet()
+	wholeFile = noComments.read()
+	attributeNames = ((wholeFile.split('[')[1]).split(']')[0]).split()
+
+	#Initialize names of attributes
+	for name in attributeNames:
+		dataList.append(Attribute(name))
+	
+	
+	#Add values to attributes
+	dataValues = wholeFile.split(']')[1]
+	if len(dataValues) < len(dataList):
+		return dataList
+
+	#Add first value to determine if values are discrete or numeric
+	for attribute in dataList[0:-2]:
+		value = dataValues[attribute]
+		if is_numeric(value):
+			attribute.numericValue[1] = value
+		else:
+			attribute.discreteValue[1] = value
+	
+	#Decision Values are always discrete
+	dataList[-1].discreteValue[1] = dataValues[len(dataList)-1]
+	
+	#Add the rest of the values to the attributes
+	caseCounter = 1
+	while (len(dataValues) >= len(dataList)):
+		dataValues = dataValues[len(dataList):-1]
+		caseCounter += 1
+		for attribute in dataList:
+			value = dataValues[attribute]
+			if attribute.numericValue:
+				attribute.numericValue[caseCounter] = value
+			else:
+				attribute.discreteValue[CaseCounter] = value
+	return dataList
+
+def multipleScanning(inputFile, k):
+	data = parser(inputFile)
+	data.multipleScans(k)
+	data.mergeCutpoints()
+	data.makeCutpointFile()
+	data.makeDiscretizedFile()
 
 #Testing code:
 multipleScanning('C:\...',3)
