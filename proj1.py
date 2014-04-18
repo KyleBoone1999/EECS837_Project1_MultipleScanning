@@ -1,5 +1,5 @@
 #This is the main program for Project #1 EECS 837
-import math
+import os,sys,math
 
 class DisjointDict:
 	def __init__(self,elementSetList):
@@ -62,7 +62,14 @@ class Partition:
 						if disjointSet.find(case1) != disjointSet.find(case2): #conflicting cases
 							return false
 		return true
-						
+	
+	def findConflictingCases(self, decision):
+			disjointSet = DisjointDict(decision)
+		for elementalSet in self.elementalSets:
+			for case1 in range(elementalSet.cases[0:-2]:
+					for case2 in elementalSet.cases[case1:-1]:
+						if disjointSet.find(case1) != disjointSet.find(case2): #conflicting cases
+							return elementalSet.cases
 
 class Attribute:
 	def __init__(self, attrName):
@@ -71,14 +78,15 @@ class Attribute:
 		self.cutpoints = list()		
 		self.discreteValue = dict()
 
-	def addNumericValue(self, case, numValue):
-		self.numericValue.update(case,numValue)
+	def sortedPointsList(self):
+		if self.numericValue:
+			self.sortedPoints = sorted(self.cutpoints.append(min(self.numericValue.values()),max(self.numericValue.values())))
 	
 	def fromNumericToDiscrete(self):
-		sortedPoints = sorted(self.cutpoints.append(sortedNumList[-1],sortedNumList[0]))
+		sortedPointsList()
 		for case, numValue in self.numericValue.iteritems():
 			intervalStart = maxBelow(numValue,sortedPoints)
-			discValue = "%d..%d"%(sortedPoints[intervalStart],sortedPoints[intervalStart+1])
+			discValue = "%d..%d"%(self.sortedPoints[intervalStart],self.sortedPoints[intervalStart+1])
 			self.discreteValue.update(case,discValue)
 
 	def maxBelow(value, sortedList):
@@ -92,12 +100,10 @@ class Attribute:
 		else:
 			return midpoint
 
-	def sortedNumericList(self):
-		self.sortedNumList = sorted(self.numericValue.values())
-		return self.sortedNumList
 
 	def possibleCutList(self):
 		self.cutList = list()
+		self.sortedNumList = sorted(self.numericValue.values())
 		for x in range(len(self.sortedNumList)-1):
 			avg = (self.sortedNumList[x+1] + self.sortedNumList[x])/2.0
 			if (avg > self.sortedNumList[x]):
@@ -105,10 +111,10 @@ class Attribute:
 		self.cutList = set(self.cutList).difference(set(self.cutpoints))
 		return self.cutList
 
+
 	def addCutPoint(self, cutValue):
 		self.cutpoints.append(cutValue)
 	
-
 	def partition(self):
 		self.partitionObj = Partition()
 		if self.discreteValue:
@@ -118,7 +124,6 @@ class Attribute:
 			for case, numValue in self.numericValue.iteritems():
 				inducedPartition.addToElementalSet(case, numValue)
 		return self.partitionObj
-
 
 class DataSet:
 	def __init__(self):
@@ -147,77 +152,231 @@ class DataSet:
 				conceptHist(concept) = 1
 		return conceptHist
 
-	def condEntropyOneCutpoint(self, attribute, cutpoint)
-		decision = self[-1]
+	def condEntropy(self,attribute,cutpoint):
+		#If no numeric values, then skip cutpoint calculation
 		if not attribute.numericValue:
-			return
-		#Separate cases into low and high
-		lowValues = list()
-		highValues = list()
+			return float(inf)
 
-		for case, num in attribute.numericValue().iteritems():
-			if num > cutpoint:
-				highValues.append(case)
-			else:
-				lowValues.append(case)
+		#Add cutpoint temporarily
+		attribute.cutpoints.append(cutpoint)
+		attribute.fromNumericToDiscrete()
+
+		decision = self.attributeList[-1]
+
+		#list cases by attribute values
+		valueDict = dict()
 		
-		#Histogram of concepts for high list and low list
-		lowValConcepts = conceptHistogram(lowValues)
-		highValConcepts = conceptHistogram(highValues)
+		for case, value in attribute.discreteValue.iteritems():
+			if valueDict.get(value):
+				valueDict(value).append(case)
+			else:
+				valueDict(value) = list(case)
 
-		totalLowCases = len(lowValues)
-		totalHighCases = len(highValues)
-		totalCases = totalLowCases + totalHighCases
+		#histogram of concepts by for each case list		
+		caseListEntList = list()
+		H = 0
+		for value, caseList in valueDict.iteritems():
+			caseListHist = conceptHistogram(caseList)
+			caseListEnt = 0
+			for concept, count in caseListHist.iteritems():
+				caseListEnt += -1 * count/len(caseList) * math.log(count/len(caseList),2)
+			caseListEntList.append(caseListEnt)
+			H += len(caseList) / len(attribute.numericValue) * caseListEnt
 
-
-		#Entropy
-		sumLow = 0
-		for concept, count in lowValConcepts.iteritems():
-			sumLow += -1 * count/totalLowCases * math.log(count/totalLowCases,2)
-
-		sumHigh = 0
-		for concept, count in highValConcepts.iteritems():
-			sumHigh += -1 * count/totalHighCases * math.log(count/totalHighCases,2)
-
-		H = (totalLowCases * sumLow + totalHighCases * sumHigh) / totalCases
+		#Remove cutpoint
+		attribute.cutpoints.pop()
+		if attribute.cutpoints:
+			attribute.fromNumericToDiscrete()
+		else:
+			attribute.discreteValue = list()
 
 		return H
+
+	
+	def condEntropyAttribute(self,attribute):
+		if not attribue.numericValue:
+			return float(inf)
+
+		decision = self.attributeList[-1]
+
+		#list cases by attribute values
+		valueDict = dict()
+		
+		for case, value in attribute.numericValue.iteritems(): #uses numeric values instead of discrete
+			if valueDict.get(value):
+				valueDict(value).append(case)
+			else:
+				valueDict(value) = list(case)
+
+		#histogram of concepts by for each case list		
+		caseListEntList = list()
+		H = 0
+		for value, caseList in valueDict.iteritems():
+			caseListHist = conceptHistogram(caseList)
+			caseListEnt = 0
+			for concept, count in caseListHist.iteritems():
+				caseListEnt += -1 * count/len(caseList) * math.log(count/len(caseList),2)
+			caseListEntList.append(caseListEnt)
+			H += len(caseList) / len(attribute.numericValue) * caseListEnt
+		return H
+
+
 
 	def bestCutPoint(self, attribute):
 		if self.numericValue:
 			minEntropy = float(inf)
 			minCutpoint = 0
 			cutList = self.possibleCutList()
-			if cutList:
-				for cutpoint in self.possibleCutList():
-					entropy = condEntropyOneCutpoint(self,attribute,cutpoint)
-					if entropy < minEntropy:
-						minEntropy = entropy
-						minCutpoint = cutpoint
-				self.addCutpoint(minCutpoint)
-				self.fromNumericToDiscrete()
-			else:
-				return 
-		else:
-			return
+			for cutpoint in cutList:
+				entropy = condEntropy(self,attribute,cutpoint)
+				if entropy < minEntropy:
+					minEntropy = entropy
+					minCutpoint = cutpoint
+			self.addCutpoint(minCutpoint)
+			self.fromNumericToDiscrete()
+			return minCutpoint
+
+	def bestCutpointSelect(self):
+		cutpointDict = dict()
+		for attr in self.attributeList[0:-2]:
+			cutPointDict[attr] = self.bestCutPoint(attr)
+		minAttr = min(cutPointDict, key= cutPointDict.get)
+		return minAttr, cutPointDict[minAttr]
+			
+
+	def isConsistent(self):		
+		return self.partitionOfA.isConsistent(self.attributeList[-1])
+
+	def findInconsistentCases(self, partition):
+		return self.partitionOfA.findConflictingCases(self.attributeList[-1])
+
+	
 
 	def mergeCutpoints(self):
-		return
+		for attribute in self.attributeList:
+			for cutpoint in attribute.cutpoints:
+				attribute.cutpoints = set(attribute.cutpoints).difference(cutpoint)
+				attribute.fromNumericToDiscrete()
+				if not self.isConsistent():
+					attribute.addCutpoint(cutpoint)
+					attribute.fromNumericToDiscrete()
+	def makeAcurr(self, caseList):
+		Acurr = Dataset()
+		for attr in self.attributeList[0:-2]:
+			if attr.cutpoints:
+				#Copy Name
+				Acurr.attributeList.append(Attribute(attr.name))
+				currAttr = Acurr.attributeList[-1]
+				#Copy Cutpoints
+				for cutpoint in attr.cutpoints:
+					currAttr.cutpoints.append(cutpoint)
+				#Copy numeric values for case list
+				for case in caseList:
+					currAttr.numericValue[case] = attr.numericValue[case]
+				#make possible cut point list
+				currAttr.possibleCutList()
+				#make discretized values
+				currAttr.fromNumericToDiscrete()
+
+		return Acurr
+			
 
 	def dominantAttribute(self):
+		if self.isConsistent():
+			return
+		#Find dominant attribute by conditional entropy among all attributes and all cases
+		attrEntropyDict = dict()
+		for attribute in self.attributelist[0:-2]:
+			if attribute.numericValue:
+				attrEntropyDict[attribute] = self.condEntropyAttribute(attribute)
+		dominantAttribute = min(attrEntropyDict,key=attrEntropyDict.get)
+		self.bestCutpoint(dominantAttribute)
+
+		while not self.isConsistent():
+			#find inconsistent cases
+			caseList = findConflictingCases()
+			#Make Acurr
+			Acurr = self.makeAcurr(caseList)
+			#find dominant attribute using conditional entropy among all attributes for conflicting cases
+			attrEntropyDict.clear()
+			for attribute in Acurr.attributeList[0:-2]:
+				if attribute.numericValue:
+					attrEntropyDict[attribute] = Acurr.condEntropy(attribute)			
+			dominantAttribute = min(attrEntropyDict, key = attEntropyDict.get)
+			cutPoint = (Acurr.bestCutpoint(dominantAttribute))
+			#Find dominant attribute in complete table
+			for attr in self.attributeList:
+				if attr.name == dominantAttribute.name:
+					attr.addCutpoint(cutPoint)
+					attr.fromNumericToDiscrete()
+					break
 		return
 
 	def multipleScans(self, k):
 		if k == 0:
-			dominantArribute(self)
+			self.dominantArribute(self)
 			return
 		for attribute in self.attributeList[0:-2]:
-			bestCutpoint(attribute)
+			self.bestCutpoint(attribute)
 		k -= 1
 		while (k > 0):
+			if self.isConsistent():
+				print("Data is consistent with " + str(k) + " scans remaining.\n")
+				return
 			#find inconsistent cases
-				#if found, select best cutpoint
+			caseList = findConflictingCases()
+			#Make Acurr
+			Acurr = self.makeAcurr(caseList)
+			#select best cutpoint for all attributes from list of inconsistent cases
+			selectAttr, selectCutpoint = Acurr.bestCutpointSelect()
+			#Find selected attribute in complete table
+			for attr in self.attributeList:
+				if attr.name == selectAttr.name:
+					attr.addCutpoint(selectCutpoint)
+					attr.fromNumericToDiscrete()
+					break
 			k -= 1
+		dominantAttribute()
+
+	def makeCutpointFile(self, inputFile):
+		cutpointFilePath = os.path.dirname(inputFile)
+		cutpointFileName = os.path.basename(inputFile) + '.int'
+		#For every attribute list name, then intervals
+		for attribute in self.attributeList:
+			if attribute.numericValue:
+				attribute.sortedPointsList()
+				cutpointFile.write(attribute.name + ': ')
+			pointNum = len(attribue.sortedPoints)
+			for i in range(pointNum - 3):
+				cutpointFile.write(attribute.sortedPoints[i] + '..' + attribute.sortedPoints[i+1] + ',')
+			cutpointFile.write(attribute.sortedPoints[-2] + '..' + attribute.sortedPoints[-1])
+			cutpointFile.write('\n')
+		cutpointFile.close()
+
+	def makeDiscretizedFile(self, inputFile):
+		discretizedFilePath = os.path.dirname(inputFile)
+		discretizedFileName = os.path.basename(inputFile) + '.discretized.data'
+		discretizedFile = open(discretizedFilePath + discretizedFileName, 'w') 
+		#write header
+		discretizedFile.write('<')
+		for attribute in self.attributeList[0:-2]:
+			discretizedFile.write(' a')
+		discretizedFile.write(' d>\n[ ')
+		for attribute in self.attributeList:
+			discretizedFile.write(attribute.name + ' ')
+		discretizedFile.write(']\n')
+		#write discretized data
+		numCases = len(self.attributeList[-1].discreteValue)
+		for caseCounter in range(numCases):
+			for attribute in self.attributeList:
+				if attribute == self.attributeList[-1]:
+					discretizedFile.write(attribute.discreteValue[caseCounter] + '\n')
+				else:
+					if attribute.discreteValue:
+						discretizedFile.write(attribute.discreteValue[caseCounter] + ' ')
+					else:
+						discretizedFile.write(attribute.numericValue[caseCounter] + ' ')
+		return
 
 def is_numeric(string):
 	try:
@@ -226,13 +385,21 @@ def is_numeric(string):
 	except	ValueError:
 		return false
 
-
+def is_positive_integer(string):
+	try:
+		int(string)
+		return int(string) >=0
+	except ValueError:
+		return false
+		
 
 def parser(inputFile):
 	
 	#Eliminate ! comments
 	dataLines = inputFile.readlines()
-	noComments = file('\\temp.d')
+	noCommentPath = os.path.dirname(inputFile)
+	noComments = open(noCommentPath + 'noComments.txt', 'w')
+
 	for line in dataLines:
 		noComments.write(line.split('!')[0])
 
@@ -272,20 +439,31 @@ def parser(inputFile):
 			if attribute.numericValue:
 				attribute.numericValue[caseCounter] = value
 			else:
-				attribute.discreteValue[CaseCounter] = value
+				attribute.discreteValue[caseCounter] = value
 	return dataList
+
+def getInputFile():
+	inputFile = raw_input("What is the input file?")
+	if os.path.isfile(inputFile):
+		return inputFile
+	print("Input file was not valid.\n")
+	return getInputFile()
+
+def getKvalue()
+	k = raw_input("What is the value of k?")
+	if k is_positive_integer():
+		return k
+	print("Value for k was not valid"\n)
+	return getKValue
 
 def multipleScanning(inputFile, k):
 	data = parser(inputFile)
 	data.multipleScans(k)
 	data.mergeCutpoints()
-	data.makeCutpointFile()
-	data.makeDiscretizedFile()
+	data.makeCutpointFile(inputFile)
+	data.makeDiscretizedFile(inputFile)
 
 #Testing code:
-multipleScanning('C:\...',3)
-
-
-
-
-
+inputFile = getInputFile()
+kValue = getKvalue()
+multipleScanning(inputFile,kValue)
